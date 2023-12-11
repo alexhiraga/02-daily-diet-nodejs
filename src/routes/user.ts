@@ -11,7 +11,7 @@ export async function userRoutes(app: FastifyInstance) {
         return bcrypt.hashSync(password, salt)
     }
 
-    app.post('/create', async (request, reply) => {
+    app.post('/signup', async (request, reply) => {
         const createUserBodySchema = z.object({
             userName: z.string(),
             email: z.string(),
