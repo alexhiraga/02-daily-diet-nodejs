@@ -11,6 +11,16 @@ export async function userRoutes(app: FastifyInstance) {
         return bcrypt.hashSync(password, salt)
     }
 
+    app.get('/', async (request, reply) => {
+        // just for debugging, delete it after
+        const sessionId = request.cookies.sessionId
+        const user = await knex('users')
+            .where({ sessionId })
+            .first()
+
+        return reply.status(200).send({ user })
+    })
+    
     app.post('/signup', async (request, reply) => {
         const createUserBodySchema = z.object({
             userName: z.string(),
@@ -48,16 +58,25 @@ export async function userRoutes(app: FastifyInstance) {
             })
         }
 
+        const sessionId = randomUUID()
+
         // insert user in db
         try {
             await knex('users')
                 .insert({
-                    id: crypto.randomUUID(),
+                    userId: crypto.randomUUID(),
+                    sessionId,
                     userName,
                     email,
                     password: encryptPassword(password),
                 })
-            
+
+            // Set the cookie
+            reply.cookie('sessionId', sessionId, {
+                path: '/',
+                maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+            })
+
             return reply.status(201).send()
         } catch (error) {
             return reply.status(404).send(error)            

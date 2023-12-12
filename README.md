@@ -1,22 +1,22 @@
 Daily Diet Back End Application
 
-[X] Create an user
-[] Identify user between requisitions
-[] Register a new meal related to user (
+[X] - Create an user
+[X] - Identify user between requisitions
+[X] - Register a new meal related to user (
     - name
     - description
     - date an hour
     - is on diet
 )
-[] Edit a meal
-[] Delete a meal
-[] Get all meals from an user
-[] Get a specific meal
-[] Get user meal summary (
+[X] - Edit a meal
+[X] - Delete a meal
+[X] - Get all meals from an user
+[X] - Get a specific meal
+[] - Get user meal summary (
     - Total quantity of meals registered
     - Total quantity meals on diet
     - Total quantity of meals that is not on diet
     - Best sequency of meals on diet
 )
-[] User can only visualize, edit and delete his meals
+[X] - User can only visualize, edit and delete his meals
 
