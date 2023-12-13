@@ -178,18 +178,55 @@ export async function mealRoutes(app: FastifyInstance) {
         }
     )
 
-    // app.get(
-    //     '/summary',
-    //     {
-    //         preHandler: [checkSessionIdExists]
-    //     },
-    //     async (request, reply) => {
-    //         const { sessionId } = request.cookies
+    app.get(
+        '/summary/:userId',
+        {
+            preHandler: [checkSessionIdExists]
+        },
+        async (request, reply) => {
+            const userIdParamsSchema = z.object({
+                userId: z.string().uuid(),
+            })
 
-    //         const summary = await knex('meal')
-    //             .where({})
-    //     }
-    // )
+            const { userId } = userIdParamsSchema.parse(request.params)
+
+            const sessionId = request.cookies.sessionId
+            if(!checkUserSession(sessionId, userId)) return reply.status(401).send({ error: 'Unauthorized' })
+
+            const summary = await knex('meal')
+                .where({
+                    owner: userId
+                })
+                .whereNull('deleted_at')
+                .orderBy('time', 'asc')
+
+            if(!summary) return reply.status(404).send()
+
+            let countOnDiet = 0
+            let countOffDiet = 0
+            const totalMeals = summary.length
+
+            // get the best sequence of meals that is on diet
+            const bestSequence = summary.reduce((acc, item) => {
+                if(item.isOnDiet === 1) {
+                    countOnDiet++
+                    acc.currentSequence++
+                    acc.maxSequence = Math.max(acc.maxSequence, acc.currentSequence)
+                } else {
+                    countOffDiet++
+                    acc.currentSequence = 0
+                }
+                return acc
+            }, { currentSequence: 0, maxSequence: 0 })
+
+            return reply.status(200).send({
+                totalMeals,
+                countOnDiet,
+                countOffDiet,
+                bestSequence: bestSequence.maxSequence
+            })
+        }
+    )
 
     //just to debug, delete it after
     app.get('/', async (request, reply) => {
