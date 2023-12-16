@@ -1,16 +1,14 @@
 
-import Home from "./pages/Home";
-import Navbar from "./components/Navbar";
+import { BrowserRouter } from "react-router-dom";
+import { Router } from "./Router";
 
 export default function App() {
-    // create a validation for the user cookie
-
-    // get the userId from localStorage or from a request to pass through props to <Home
-
+    
     return (
         <div>
-            <Navbar />
-            <Home />
+            <BrowserRouter>
+                <Router />
+            </BrowserRouter>
 
         </div>
     )

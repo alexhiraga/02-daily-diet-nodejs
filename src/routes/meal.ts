@@ -1,23 +1,31 @@
 import { FastifyInstance } from "fastify";
-import { z } from "zod";
+import { date, z } from "zod";
 import { knex } from "../database";
 import { checkSessionIdExists } from "../middleware/check-session-id-exists";
 import crypto from 'node:crypto'
+import { env } from '../env'
+import jwt from 'jsonwebtoken'
+import { FastifyRequest } from "fastify"
 
 export async function mealRoutes(app: FastifyInstance) {
 
-    async function checkUserSession(sessionId: string | undefined, userId: string) {
-        // Checks if the user has the same sessionId in db and in cookies
-        if(!sessionId) return false
+    function decryptToken(request: FastifyRequest) {
+        // get token from cookies and return the userId
+        const token = request.cookies.token
 
-        const userSessionId = await knex('users')
-            .select('sessionId')
-            .where({ userId })
-            .whereNull('deleted_at')
-            .first()
-        
-        if(userSessionId === sessionId) return true
-        else return false
+        if(!token) return false
+        const userInfo = jwt.verify(token, env.AUTH_SECRET) as any
+        const { userId } = userInfo
+        return userId
+    }
+
+    // Function to format timestamp to "MM/DD/YYYY"
+    function formatDate(timestamp: number) {
+        const date = new Date(timestamp);
+        const day = date.getDate();
+        const month = date.getMonth() + 1; // Month is zero-based
+        const year = date.getFullYear();
+        return `${month}/${day}/${year}`;
     }
 
     app.post(
@@ -31,16 +39,14 @@ export async function mealRoutes(app: FastifyInstance) {
                 description: z.string(),
                 time: z.coerce.date(),
                 isOnDiet: z.boolean(),
-                userId: z.string().uuid()
             })
 
-            let sessionId = request.cookies.sessionId
+            const { name, description, time, isOnDiet } = createMealBodySchema.parse(request.body)
             
-            const { name, description, time, isOnDiet, userId } = createMealBodySchema.parse(request.body)
-            
-            if(!checkUserSession(sessionId, userId)) return reply.status(401).send({ error: 'Unauthorized' })
+            if(!name || !description || !time || !date) return reply.status(400).send({ error: 'Please provide all the infos.'})
 
-            if(!name || !description || !time) return reply.status(400).send({ error: 'Please provide all the infos.'})
+            const userId = decryptToken(request)
+            if(!userId) return reply.status(404).send({ error: 'User not found.' })
 
             const mealId = crypto.randomUUID()
 
@@ -74,13 +80,9 @@ export async function mealRoutes(app: FastifyInstance) {
                 description: z.string(),
                 time: z.coerce.date(),
                 isOnDiet: z.number(),
-                userId: z.string().uuid()
             })
 
-            const { mealId, name, description, time, isOnDiet, userId } = editMealBodySchema.parse(request.body)
-
-            const sessionId = request.cookies.sessionId
-            if(!checkUserSession(sessionId, userId)) return reply.status(401).send({ error: 'Unauthorized' })
+            const { mealId, name, description, time, isOnDiet } = editMealBodySchema.parse(request.body)
 
             try {
                 await knex('meal')
@@ -106,13 +108,9 @@ export async function mealRoutes(app: FastifyInstance) {
         async (request, reply) => {
             const deleteBodySchema = z.object({
                 mealId: z.string().uuid(),
-                userId: z.string().uuid()
             })
 
-            const { mealId, userId } = deleteBodySchema.parse(request.body)
-
-            const sessionId = request.cookies.sessionId
-            if(!checkUserSession(sessionId, userId)) return reply.status(401).send({ error: 'Unauthorized' })
+            const { mealId } = deleteBodySchema.parse(request.body)
 
             try {
                 await knex('meal')
@@ -126,19 +124,13 @@ export async function mealRoutes(app: FastifyInstance) {
     )
 
     app.get(
-        '/user/:userId',
+        '/user',
         {
             preHandler: [checkSessionIdExists]
         },
         async (request, reply) => {
-            const userIdParamsSchema = z.object({
-                userId: z.string().uuid(),
-            })
-
-            const { userId } = userIdParamsSchema.parse(request.params)
-
-            const sessionId = request.cookies.sessionId
-            if(!checkUserSession(sessionId, userId)) return reply.status(401).send({ error: 'Unauthorized' })
+            const userId = decryptToken(request)
+            if(!userId) return reply.status(404).send({ error: 'User not found.' })
 
             try {
                 const userMeals = await knex('meal')
@@ -146,7 +138,20 @@ export async function mealRoutes(app: FastifyInstance) {
                     .where({ owner: userId })
                     .whereNull('deleted_at')
 
-                return reply.status(200).send({ userMeals })
+                // Organize the data by day
+                const meals = userMeals.reduce((result, item) => {
+                    const formattedDate = formatDate(item.time);
+                
+                    if (!result[formattedDate]) {
+                        result[formattedDate] = [];
+                    }
+                
+                    result[formattedDate].push(item);
+                
+                    return result;
+                }, {});
+
+                return reply.status(200).send({ meals })
             } catch (error) {
                 return reply.status(500).send(error)
             }
@@ -167,7 +172,7 @@ export async function mealRoutes(app: FastifyInstance) {
 
             try {
                 const meal = await knex('meal')
-                    .select('mealId', 'name', 'description', 'time', 'isOnDiet')
+                    .select('mealId', 'name', 'description', 'date', 'time', 'isOnDiet')
                     .where({ mealId })
                     .whereNull('deleted_at')
 
@@ -179,19 +184,13 @@ export async function mealRoutes(app: FastifyInstance) {
     )
 
     app.get(
-        '/summary/:userId',
+        '/summary',
         {
             preHandler: [checkSessionIdExists]
         },
         async (request, reply) => {
-            const userIdParamsSchema = z.object({
-                userId: z.string().uuid(),
-            })
-
-            const { userId } = userIdParamsSchema.parse(request.params)
-
-            const sessionId = request.cookies.sessionId
-            if(!checkUserSession(sessionId, userId)) return reply.status(401).send({ error: 'Unauthorized' })
+            const userId = decryptToken(request)
+            if(!userId) return reply.status(404).send({ error: 'User not found.' })
 
             const summary = await knex('meal')
                 .where({
@@ -219,11 +218,14 @@ export async function mealRoutes(app: FastifyInstance) {
                 return acc
             }, { currentSequence: 0, maxSequence: 0 })
 
+            const onDietPercentage = Number((countOnDiet * 100 / totalMeals).toFixed(2))
+
             return reply.status(200).send({
                 totalMeals,
                 countOnDiet,
                 countOffDiet,
-                bestSequence: bestSequence.maxSequence
+                bestSequence: bestSequence.maxSequence,
+                onDietPercentage
             })
         }
     )
