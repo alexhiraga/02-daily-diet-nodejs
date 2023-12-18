@@ -137,7 +137,6 @@ const MealModal = forwardRef<ModalRef, ModalProps>((props, ref) => {
             <div className="flex flex-col justify-between">
                 <div>
                     <h3 className="mb-3">Edit meal</h3>
-                    <button onClick={() => console.log(meal)}>asd</button>
                     <form onSubmit={handleSubmit(handleSubmitMeal)} className="flex flex-col gap-1 text-left">
 
                         <span>Meal:</span>
