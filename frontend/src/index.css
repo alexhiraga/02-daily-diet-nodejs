@@ -55,15 +55,20 @@
     padding: 16px;
     gap: 16px;
 
+   
+    margin: 15px 0;
+}
+
+.mealInfos {
     display: flex;
     justify-content: space-between;
 
     vertical-align: middle;
-    margin: 15px 0;
 }
 
 button {
     display: flex;
+    justify-content: center;
     gap: 12px;
     vertical-align: middle;
 
@@ -112,7 +117,7 @@ div[role="radiogroup"] button[data-state="checked"].no {
     color: var(--gray-1);
 }
 
-input {
+input, textarea {
     border-radius: 6px;
     background: transparent;
     color: var(--gray-1);

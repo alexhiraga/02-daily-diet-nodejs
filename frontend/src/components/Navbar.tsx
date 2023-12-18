@@ -15,7 +15,7 @@ export default function Navbar({ user }: Props) {
     }
 
     return (
-        <div className="bg-white w-screen py-4 box-shadow">
+        <div className="bg-white py-4 box-shadow">
             <div className="flex justify-between max-w-5xl mx-auto">
                 <img src={logo} alt="logo" />
                 {user ? (

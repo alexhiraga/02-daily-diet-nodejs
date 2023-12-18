@@ -1,12 +1,22 @@
-import { Plus } from 'phosphor-react'
-import { useState } from 'react'
-import * as RadioGroup from "@radix-ui/react-radio-group";
-import { Controller, useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from 'zod'
-import moment from 'moment';
-import { api } from '../lib/axios';
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import Modal from 'react-modal';
 import { Alert, MealData } from '../pages/Home';
+import moment from 'moment';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod'
+import { api } from '../lib/axios';
+import * as RadioGroup from "@radix-ui/react-radio-group";
+
+export interface ModalProps {
+    openModal: (meal: MealData) => void;
+    displayAlert: ({type, message}: Alert) => void
+    getData: () => void
+}
+
+export interface ModalRef {
+    openModal: (meal: MealData) => void;
+}
 
 const formSchema = z.object({
     name: z.string(),
@@ -18,18 +28,39 @@ const formSchema = z.object({
 
 type formInputs = z.infer<typeof formSchema>
 
-interface Props {
-    addNewMeal: (meal: MealData) => void
-    displayAlert: ({type, message}: Alert) => void
-}
+const customStyles = {
+    content: {
+        top: '50%',
+        left: '50%',
+        right: 'auto',
+        bottom: 'auto',
+        marginRight: '-50%',
+        transform: 'translate(-50%, -50%)',
+        width: '480px',
+        padding: '3rem',
+        border: '1px solid var(--gray-5)',
+        borderRadius: '15px'
+    },
+  };
 
-export default function NewMeal({ addNewMeal, displayAlert }: Props) {
+const MealModal = forwardRef<ModalRef, ModalProps>((props, ref) => {
+
     const [isOpen, setIsOpen] = useState<boolean>(false)
     const [message, setMessage] = useState<string>('')
+    const [meal, setMeal] = useState<MealData | undefined>()
 
-    const setOpenContainer = () => {
-        setIsOpen((state) => !state)
+    function handleOpenModal(meal: MealData) {
+        setMeal(meal)
+        setIsOpen(true)
     }
+
+    const handleCloseModal = () => {
+        setIsOpen(false);
+    };
+
+    useImperativeHandle(ref, () => ({
+        openModal: handleOpenModal,
+    }))
 
     const { 
         control,
@@ -39,13 +70,31 @@ export default function NewMeal({ addNewMeal, displayAlert }: Props) {
     } = useForm<formInputs>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            isOnDiet: 'true'
+            name: meal && meal.name,
+            description: meal && meal.description,
+            date: meal && moment(meal.time).format('YYYY-MM-DD'),
+            time: meal && moment(meal.time).format('HH:mm'),
+            isOnDiet: (meal && meal.isOnDiet) ? 'true' : 'false',
         }
     })
 
+    useEffect(() => {
+        if (meal) {
+            // Set default values for the form
+            reset({
+                name: meal.name,
+                description: meal.description,
+                date: moment(meal.time).format('YYYY-MM-DD'),
+                time: moment(meal.time).format('HH:mm'),
+                isOnDiet: meal.isOnDiet ? 'true' : 'false',
+            });
+        }
+    }, [meal, reset]);
+
+
     async function handleSubmitMeal(data: formInputs) {
         setMessage('')
-        if(!data.date || !data.description || !data.name || !data.time) setMessage('Please fill all required fields.')
+        if(!meal?.mealId || !data.date || !data.description || !data.name || !data.time) setMessage('Please fill all required fields.')
 
         // transform the date into a timestamp
         const dateTimeString = data.date + data.time
@@ -61,48 +110,34 @@ export default function NewMeal({ addNewMeal, displayAlert }: Props) {
             isOnDiet
         }
 
-        let mealId
         try {
-            mealId = await api.post('/meal/create', processedData)
+            await api.put(`/meal/update/${meal && meal.mealId}`, processedData)
 
-            // add meal to list
-            const date = moment(data.date, 'YYYY-MM-DD').format('MM/DD/YYYY')
-            const newMeal = {
-                mealId: mealId.data.mealId,
-                name: data.name,
-                description: data.description,
-                isOnDiet: isOnDiet ? 1 : 0,
-                time: timestamp,
-                date
-            }
-            addNewMeal(newMeal)
+            // close modal and update list
+            handleCloseModal()
+            props.getData()
 
-            displayAlert({
+            props.displayAlert({
                 type: 'success',
-                message: `Meal ${data.name} added successfully!`
+                message: `Meal ${data.name} updated successfully!`
             })
-            
-            // clear inputs
-            reset()
-
         } catch (error) {
             console.error(error)
             setMessage('An error occurred. Please try again later.')
         }
 
     }
-
+    
     return (
-        <div className="mt-6">
-            <div className="flex justify-end mb-6">
-                <button className="btnPrimary" onClick={setOpenContainer}>
-                    <Plus className="my-auto" color="#FFFFFF" size={18} />
-                    New meal
-                </button>
-            </div>
-
-            {isOpen && (
-                <div className="container">
+        <Modal 
+            style={customStyles}
+            isOpen={isOpen}
+            onRequestClose={handleCloseModal}
+        >
+            <div className="flex flex-col justify-between">
+                <div>
+                    <h3 className="mb-3">Edit meal</h3>
+                    <button onClick={() => console.log(meal)}>asd</button>
                     <form onSubmit={handleSubmit(handleSubmitMeal)} className="flex flex-col gap-1 text-left">
 
                         <span>Meal:</span>
@@ -164,13 +199,19 @@ export default function NewMeal({ addNewMeal, displayAlert }: Props) {
                         )}
 
                         <button className="btnPrimary mt-4 flex justify-center" onClick={handleSubmit(handleSubmitMeal)}>
-                            Register meal
+                            Update meal
+                        </button>
+
+                        <button className="btnSecondary mt-4 flex justify-center" onClick={() => handleCloseModal()}>
+                            Cancel
                         </button>
 
                     </form>
-
                 </div>
-            )}
-        </div>
+
+            </div>
+        </Modal>
     )
-}
+})
+
+export default MealModal;

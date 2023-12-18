@@ -69,20 +69,23 @@ export async function mealRoutes(app: FastifyInstance) {
     )
 
     app.put(
-        '/update',
+        '/update/:mealId',
         {
             preHandler: [checkSessionIdExists]
         },
         async (request, reply) => {
             const editMealBodySchema = z.object({
-                mealId: z.string().uuid(),
                 name: z.string(),
                 description: z.string(),
                 time: z.coerce.date(),
-                isOnDiet: z.number(),
+                isOnDiet: z.boolean(),
+            })
+            const editMealParamsSchema = z.object({
+                mealId: z.string().uuid(),
             })
 
-            const { mealId, name, description, time, isOnDiet } = editMealBodySchema.parse(request.body)
+            const { name, description, time, isOnDiet } = editMealBodySchema.parse(request.body)
+            const { mealId } = editMealParamsSchema.parse(request.params)
 
             try {
                 await knex('meal')
@@ -101,16 +104,16 @@ export async function mealRoutes(app: FastifyInstance) {
     )
 
     app.put(
-        '/delete',
+        '/delete/:mealId',
         {
             preHandler: [checkSessionIdExists]
         },
         async (request, reply) => {
-            const deleteBodySchema = z.object({
+            const deleteParamsSchema = z.object({
                 mealId: z.string().uuid(),
             })
 
-            const { mealId } = deleteBodySchema.parse(request.body)
+            const { mealId } = deleteParamsSchema.parse(request.params)
 
             try {
                 await knex('meal')
@@ -137,6 +140,7 @@ export async function mealRoutes(app: FastifyInstance) {
                     .select('mealId', 'name', 'description', 'time', 'isOnDiet')
                     .where({ owner: userId })
                     .whereNull('deleted_at')
+                    .orderBy('time', 'desc')
 
                 // Organize the data by day
                 const meals = userMeals.reduce((result, item) => {
