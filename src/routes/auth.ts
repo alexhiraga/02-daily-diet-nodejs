@@ -50,7 +50,12 @@ export async function authRoutes(app: FastifyInstance) {
             sameSite: 'None' as any,
             secure: true
         })
-        return reply.status(200).send()
+        return reply.status(200).send(
+            { 
+                userName: userInfo[0].userName,
+                email: userInfo[0].email
+            }
+        )
         // return reply.status(200).send({ token: jwt.sign(payload, env.AUTH_SECRET) })
     })
 
@@ -77,28 +82,14 @@ export async function authRoutes(app: FastifyInstance) {
         } else {
             return reply.status(400).send({ error: 'User is not logged in' })
         }
-        // // validation for auto logout in front end
-        // const loginUserBodySchema = z.object({
-        //     token: z.string(),
-        // })
-
-        // const { token } = loginUserBodySchema.parse(request.body)
-
-        // const userInfo = jwt.verify(token, env.AUTH_SECRET) as any
-        // const { userId, userName, email, exp } = userInfo
-
-        // // checks token exp date and then give user info back
-        // if(new Date(exp * 1000) > new Date()) {
-        //     const user = await knex('users')
-        //         .select('userName', 'email')
-        //         .where({ userId })
-        //         .first()
-
-        //     if(!user) return reply.status(404).send({ error: 'User not found' })
-        //     return reply.status(200).send({ user })
-        // } else {
-        //     return reply.status(400).send({ error: 'User is not logged in' })
-        // }
-
     })
+
+    app.post(
+        '/logout',
+        async (request, reply) => {
+            reply.clearCookie('token');
+
+            return reply.status(200).send({ success: true });
+        }
+    )
 }

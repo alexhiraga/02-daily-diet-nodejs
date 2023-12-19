@@ -25,19 +25,30 @@ export function Router() {
 
     async function validateToken() {
         // Validate user and get the user info
-        const res = await api.get('/validateToken')
+        try {
+            const res = await api.get('/validateToken')
+            setUser(res.data.user)
+        } catch (error) {
+            console.error(error)
+            navigate("/daily-diet/login")
+        }
+    }
 
-        if(!res) navigate("/daily-diet/login")
-
-        setUser(res.data.user)
+    function setInfo(user?: User) {
+        if(!user) {
+            setUser({ email: '', userName: '' })
+            return
+        }
+        const { email, userName } = user
+        setUser({ email, userName })
     }
 
     return (
         <>
-            <Navbar user={user} />
+            <Navbar user={user} setInfo={setInfo} />
             <Routes>
                 <Route path="/daily-diet" element={ <Home user={user} /> } />
-                <Route path="/daily-diet/login" element={ <Auth /> } />
+                <Route path="/daily-diet/login" element={ <Auth setInfo={setInfo} /> } />
             </Routes>
         </>
     )

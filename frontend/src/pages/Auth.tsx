@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { api } from '../lib/axios'
 import { useNavigate } from 'react-router-dom'
+import { User } from '../Router'
 
 const loginFormSchema = z.object({
     userName: z.string().optional(),
@@ -14,7 +15,11 @@ const loginFormSchema = z.object({
 
 type LoginFormInputs = z.infer<typeof loginFormSchema>
 
-export default function Auth() {
+interface Props {
+    setInfo: (user: User) => void
+}
+
+export default function Auth({ setInfo }: Props) {
 
     const [showLogin, setShowLogin] = useState<boolean>(true)
     const [error, setError] = useState<string>('')
@@ -44,7 +49,7 @@ export default function Auth() {
                     email: data.email,
                     password: data.password
                 }, { withCredentials: true })
-                localStorage.setItem('@daily-diet:user-token-1.0.0', JSON.stringify(res.data.token))
+                setInfo(res.data)
                 navigate("/daily-diet")
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (error: any) {
