@@ -30,7 +30,7 @@ export function Router() {
             setUser(res.data.user)
         } catch (error) {
             console.error(error)
-            navigate("/daily-diet/login")
+            navigate("/02-daily-diet-nodejs/login")
         }
     }
 
@@ -47,8 +47,8 @@ export function Router() {
         <>
             <Navbar user={user} setInfo={setInfo} />
             <Routes>
-                <Route path="/daily-diet" element={ <Home user={user} /> } />
-                <Route path="/daily-diet/login" element={ <Auth setInfo={setInfo} /> } />
+                <Route path="/02-daily-diet-nodejs" element={ <Home user={user} /> } />
+                <Route path="/02-daily-diet-nodejs/login" element={ <Auth setInfo={setInfo} /> } />
             </Routes>
         </>
     )

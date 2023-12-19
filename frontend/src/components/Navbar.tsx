@@ -16,7 +16,7 @@ export default function Navbar({ user, setInfo }: Props) {
         try {
             await api.post('/logout')
             setInfo()
-            navigate("/daily-diet/login")
+            navigate("/02-daily-diet-nodejs/login")
         } catch (error) {
             console.error(error)
         }
@@ -40,7 +40,7 @@ export default function Navbar({ user, setInfo }: Props) {
                         )}
                     </div>
                 ) : (
-                    <div className="flex gap-3 align-middle" onClick={() => navigate("/daily-diet/login")}>
+                    <div className="flex gap-3 align-middle" onClick={() => navigate("/02-daily-diet-nodejs/login")}>
                         <p className="my-auto">Sign In</p>
                         <SignIn 
                             size={20} 
