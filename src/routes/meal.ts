@@ -19,14 +19,14 @@ export async function mealRoutes(app: FastifyInstance) {
         return userId
     }
 
-    // Function to format timestamp to "MM/DD/YYYY"
-    function formatDate(timestamp: number) {
-        const date = new Date(timestamp);
-        const day = date.getDate();
-        const month = date.getMonth() + 1; // Month is zero-based
-        const year = date.getFullYear();
-        return `${month}/${day}/${year}`;
-    }
+    // // Function to format timestamp to "MM/DD/YYYY"
+    // function formatDate(timestamp: number) {
+    //     const date = new Date(timestamp);
+    //     const day = date.getDate();
+    //     const month = date.getMonth() + 1; // Month is zero-based
+    //     const year = date.getFullYear();
+    //     return `${month}/${day}/${year}`;
+    // }
 
     app.post(
         '/create', 
@@ -132,30 +132,31 @@ export async function mealRoutes(app: FastifyInstance) {
             preHandler: [checkSessionIdExists]
         },
         async (request, reply) => {
+            const userQuerySchema = z.object({
+                offset: z.string().default('0'),
+                limit: z.string().default('10'),
+            });
+            const { offset, limit } = userQuerySchema.parse(request.query);
+
             const userId = decryptToken(request)
             if(!userId) return reply.status(404).send({ error: 'User not found.' })
 
             try {
-                const userMeals = await knex('meal')
+                const meals = await knex('meal')
                     .select('mealId', 'name', 'description', 'time', 'isOnDiet')
                     .where({ owner: userId })
                     .whereNull('deleted_at')
                     .orderBy('time', 'desc')
+                    .offset(Number(offset))
+                    .limit(Number(limit))
 
-                // Organize the data by day
-                const meals = userMeals.reduce((result, item) => {
-                    const formattedDate = formatDate(item.time);
-                
-                    if (!result[formattedDate]) {
-                        result[formattedDate] = [];
-                    }
-                
-                    result[formattedDate].push(item);
-                
-                    return result;
-                }, {});
+                const totalMeals = await knex('meal')
+                    .where({ owner: userId })
+                    .whereNull('deleted_at')
+                    .count()
+                    .first()
 
-                return reply.status(200).send({ meals })
+                return reply.status(200).send({ meals, totalMeals: totalMeals && totalMeals["count(*)"] })
             } catch (error) {
                 return reply.status(500).send(error)
             }

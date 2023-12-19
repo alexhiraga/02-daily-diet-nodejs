@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import Modal from 'react-modal';
-import { Alert, MealData } from '../pages/Home';
+import { Alert, MealData, mealUpdate } from '../pages/Home';
 import moment from 'moment';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,7 +11,8 @@ import * as RadioGroup from "@radix-ui/react-radio-group";
 export interface ModalProps {
     openModal: (meal: MealData) => void;
     displayAlert: ({type, message}: Alert) => void
-    getData: () => void
+    refreshMeal: (mealId: string | undefined, data: mealUpdate) => void
+    getSummary: () => void
 }
 
 export interface ModalRef {
@@ -102,20 +103,19 @@ const MealModal = forwardRef<ModalRef, ModalProps>((props, ref) => {
         const timestamp = dateTimeMoment.valueOf()
 
         const isOnDiet = data.isOnDiet === 'true' ? true : false
-
-        const processedData = {
-            name: data.name,
-            description: data.description,
-            time: timestamp,
-            isOnDiet
-        }
-
+        
         try {
+            const processedData = {
+                name: data.name,
+                description: data.description,
+                time: timestamp,
+                isOnDiet
+            }
             await api.put(`/meal/update/${meal && meal.mealId}`, processedData)
-
             // close modal and update list
             handleCloseModal()
-            props.getData()
+            props.refreshMeal(meal && meal.mealId, processedData)
+            props.getSummary()
 
             props.displayAlert({
                 type: 'success',
