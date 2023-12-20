@@ -4,5 +4,8 @@ export const api = axios.create({
     baseURL: import.meta.env.MODE === 'production'
         ? import.meta.env.VITE_BASE_URL_PROD
         : import.meta.env.VITE_BASE_URL_LOCAL,
-    withCredentials: true
+    withCredentials: true,
+    headers: {
+        'Content-Type': 'application/json',
+    },
 })
