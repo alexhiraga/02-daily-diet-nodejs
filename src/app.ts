@@ -6,12 +6,14 @@ import { userRoutes } from './routes/user'
 import { authRoutes } from './routes/auth'
 import { mealRoutes } from './routes/meal'
 
+import { env } from './env'
+
 export const app = fastify()
 
 app.register(cookie)
 
 app.register(cors, {
-    origin: 'http://localhost:5173',
+    origin: env.ORIGIN_URL,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
 })
