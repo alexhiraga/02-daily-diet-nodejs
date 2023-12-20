@@ -13,7 +13,7 @@ export const app = fastify()
 app.register(cookie)
 
 app.register(cors, {
-    origin: env.ORIGIN_URL,
+    origin: 'https://alexhiraga.github.io',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
 })
