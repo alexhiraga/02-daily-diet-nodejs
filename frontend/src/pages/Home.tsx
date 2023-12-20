@@ -208,7 +208,9 @@ export default function Home({ user }: Props) {
             {/* Left side */}
             <div className="w-full sm:w-8/12">
                 <Header user={user} />
-                <Stats summary={summary} />
+                {mealsList && (
+                    <Stats summary={summary} />
+                )}
                 <Meals
                     meals={meals}
                     displayAlert={displayAlert}

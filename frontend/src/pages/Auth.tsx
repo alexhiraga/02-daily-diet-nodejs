@@ -66,7 +66,7 @@ export default function Auth({ setInfo }: Props) {
                     password: data.password,
                     confirmPassword: data.confirmPassword
                 }, { withCredentials: true })
-                localStorage.setItem('@daily-diet:user-token-1.0.0', JSON.stringify(res.data.token))
+                setInfo(res.data)
                 navigate("/02-daily-diet-nodejs")
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (error: any) {
